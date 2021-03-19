@@ -17,6 +17,27 @@ def findLastSaturdayDate():
         saturday = today - timedelta(days=(day+1))
     return saturday.isoformat().replace('-', '')[2:]
 
+def pathRidesPerDay(dataframe):
+    final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS'])
+    dataframe = dataframe[dataframe['DIVISION']=='PTH']
+    for date in dataframe['DATE'].unique():
+        for station in dataframe['STATION'].unique():
+            entries = 0
+        exits = 0
+        for scp in dataframe['SCP'].unique():
+            temp = dataframe[(dataframe['DATE'] == date) & (dataframe['STATION'] == station) & (dataframe['SCP'] == scp)]
+            if len(temp) != 0:
+                entryList = temp['ENTRIES'].to_list()
+                exitList = temp['EXITS'].to_list()
+                entries = entries + (entryList[len(entryList) - 1] - entryList[0])
+                exits = exits + (exitList[len(exitList) - 1] - exitList[0])
+
+        final = final.append(other={'DATE': date,
+                                    'STATION': station,
+                                    'ENTRIES': entries,
+                                    'EXITS': exits
+                                    }, ignore_index=True)
+
 if __name__ == '__main__':
     dateString = findLastSaturdayDate()
     print('Date To be used: ', dateString)
