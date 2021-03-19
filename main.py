@@ -9,12 +9,10 @@ def findLastSaturdayDate():
     saturday = None
     today = datetime.today().date()
     day = today.isoweekday()
-    if day == 6:
-        saturday = today
-    elif day == 7:  # Today is Sunday.  Sunday is 7.  Sunday - 1 is saturday
-        saturday = today - timedelta(days=1)
-    else:
-        saturday = today - timedelta(days=(day+1))
+
+    # Ternary Operator to choose the previous saturday
+    saturday = today if day == 6 else today + timedelta(days=-(day % 6 + 1))
+
     return saturday.isoformat().replace('-', '')[2:]
 
 def pathRidesPerDay(dataframe):
