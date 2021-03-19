@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta
 import matplotlib as plt
-
+from urllib.error import HTTPError
 '''
 @ returns the date of the last saturday
 '''
@@ -12,8 +12,7 @@ def findLastSaturdayDate():
 
     # Ternary Operator to choose the previous saturday
     saturday = today if day == 6 else today + timedelta(days=-(day % 6 + 1))
-
-    return saturday.isoformat().replace('-', '')[2:]
+    return saturday
 
 def pathRidesPerDay(dataframe):
     final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS'])
@@ -37,6 +36,19 @@ def pathRidesPerDay(dataframe):
                                         }, ignore_index=True)
 
     return final
+
+def get_mta_dataframe():
+    dateString = findLastSaturdayDate().isoformat().replace('-', '')[2:]
+    print('Date To be used: ', dateString)
+    try:
+        baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(dateString)
+        df = pd.read_csv(baseURL)
+        return df
+    except HTTPError as err:
+        date_str = (findLastSaturdayDate()-timedelta(days=-7)).isoformat().replace('-', '')[2:]
+        baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(date_str)
+        df = pd.read_csv(baseURL)
+        return df
 
 
 def find_differences(dlist):
@@ -63,10 +75,7 @@ def find_differences(dlist):
     return diff
 
 if __name__ == '__main__':
-    dateString = findLastSaturdayDate()
-    print('Date To be used: ', dateString)
-    baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(dateString)
-    df = pd.read_csv(baseURL)
+    df = get_mta_dataframe()
 
     l = [0,10,0,200]
     print(find_differences(l)) # Prints out 210
