@@ -23,26 +23,55 @@ def pathRidesPerDay(dataframe):
     for date in dataframe['DATE'].unique():
         for station in dataframe['STATION'].unique():
             entries = 0
-        exits = 0
-        for scp in dataframe['SCP'].unique():
-            temp = dataframe[(dataframe['DATE'] == date) & (dataframe['STATION'] == station) & (dataframe['SCP'] == scp)]
-            if len(temp) != 0:
-                entryList = temp['ENTRIES'].to_list()
-                exitList = temp['EXITS'].to_list()
-                entries = entries + (entryList[len(entryList) - 1] - entryList[0])
-                exits = exits + (exitList[len(exitList) - 1] - exitList[0])
+            exits = 0
+            for scp in dataframe['SCP'].unique():
+                temp = dataframe[(dataframe['DATE'] == date) & (dataframe['STATION'] == station) & (dataframe['SCP'] == scp)]
+                if len(temp) != 0:
+                    entryList = temp['ENTRIES'].to_list()
+                    exitList = temp['EXITS'].to_list()
+                    entries = entries + find_differences(entryList)
+                    exits = exits + find_differences(exitList)
 
-        final = final.append(other={'DATE': date,
-                                    'STATION': station,
-                                    'ENTRIES': entries,
-                                    'EXITS': exits
-                                    }, ignore_index=True)
+            final = final.append(other={'DATE': date,
+                                        'STATION': station,
+                                        'ENTRIES': entries,
+                                        'EXITS': exits
+                                        }, ignore_index=True)
+
+    return final
+
+
+def find_differences(dlist):
+
+    diff = 0
+    t = []
+    tCounter = 0
+    for n in range(0, len(dlist)):
+        if len(t) == 0:
+            t.append(dlist[n])
+        else:
+            tCounter = tCounter + 1
+            if t[tCounter - 1] <= dlist[n]:
+                t.append(dlist[n])
+            else:
+                diff = diff + t[-1] - t[0]
+                tCounter = 0
+                t.clear()
+                t.append(dlist[n])
+    if len(t) == 1:
+        diff = diff + t[0]
+    else:
+        diff = diff + t[-1] - t[0]
+    return diff
 
 if __name__ == '__main__':
     dateString = findLastSaturdayDate()
     print('Date To be used: ', dateString)
     baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(dateString)
     df = pd.read_csv(baseURL)
+
+    l = [0,10,0,200]
+    print(find_differences(l)) # Prints out 210
 
     '''
     The errorColumn is known as 'EXITS              
