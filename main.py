@@ -14,7 +14,7 @@ def findLastSaturdayDate():
 
     # Ternary Operator to choose the previous saturday
     # -(day % 6 + 1) changes isoformat for each day to the previous saturday
-    saturday = today if day == 6 else today + timedelta(days=-(day % 6 + 1))
+    saturday = (today + timedelta(days=-7)) if day == 6 else today + timedelta(days=-(day % 6 + 1))
     return saturday
 
 def pathRidesPerDay(dataframe):
@@ -41,15 +41,14 @@ def pathRidesPerDay(dataframe):
     return final
 
 def get_mta_dataframe():
-    dateString = findLastSaturdayDate().isoformat().replace('-', '')[2:]
-    print('Date To be used: ', dateString)
+    date = findLastSaturdayDate()
+    dateString = date.isoformat().replace('-', '')[2:]
+    print('Date To be used: ', date, '\ndate string: ',dateString)
     try:
         baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(dateString)
         df = pd.read_csv(baseURL)
     except HTTPError as err:
-        date_str = (findLastSaturdayDate()-timedelta(days=-7)).isoformat().replace('-', '')[2:]
-        baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(date_str)
-        df = pd.read_csv(baseURL)
+        print('something went wrong')
     finally:
         # The last column is supposed to be 'EXITS' but it has alot of spaces after it right now
         errorColumn = df.columns[-1]
