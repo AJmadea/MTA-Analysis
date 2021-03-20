@@ -2,6 +2,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 import matplotlib as plt
 from urllib.error import HTTPError
+import plotly.express as px
+
 '''
 @ returns the date of the last saturday
 '''
@@ -11,6 +13,7 @@ def findLastSaturdayDate():
     day = today.isoweekday()
 
     # Ternary Operator to choose the previous saturday
+    # -(day % 6 + 1) changes isoformat for each day to the previous saturday
     saturday = today if day == 6 else today + timedelta(days=-(day % 6 + 1))
     return saturday
 
@@ -43,11 +46,14 @@ def get_mta_dataframe():
     try:
         baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(dateString)
         df = pd.read_csv(baseURL)
-        return df
     except HTTPError as err:
         date_str = (findLastSaturdayDate()-timedelta(days=-7)).isoformat().replace('-', '')[2:]
         baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(date_str)
         df = pd.read_csv(baseURL)
+    finally:
+        # The last column is supposed to be 'EXITS' but it has alot of spaces after it right now
+        errorColumn = df.columns[-1]
+        df.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
         return df
 
 
@@ -75,28 +81,18 @@ def find_differences(dlist):
     return diff
 
 if __name__ == '__main__':
+
     df = get_mta_dataframe()
+    pathTrains = pathRidesPerDay(df)
+    pathGroupedEntries = pathTrains.groupby(['STATION', 'DATE'])['ENTRIES'].sum().reset_index()
+    pathGroupedExits = pathTrains.groupby(['STATION', 'DATE'])['EXITS'].sum().reset_index()
 
-    l = [0,10,0,200]
-    print(find_differences(l)) # Prints out 210
+    figs = [px.line(pathGroupedEntries, x='DATE', y='ENTRIES', color='STATION', title='ENTRIES for the PATH Train'),
+            px.line(pathGroupedExits, x='DATE', y='EXITS', color='STATION', title='Exits for the PATH')]
 
-    '''
-    The errorColumn is known as 'EXITS              
-    It has a lot of spaces at the end of the string which makes the call
-    df['EXITS'] or the like like invalid.  These two lines fix column label as 'EXITS'
-    '''
-    errorColumn = df.columns[df.columns.size-1]
-    df.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
-
-    # Just screwing around with this part.  Getting the times the MTA updates their info.
-    # Getting the hour position and converting it to an int
-    df['TIME'] = df['TIME'].str.slice(0, 2)
-    df[['TIME']] = df['TIME'].astype('int')
+    for f in figs:
+        f.show()
 
     print('Data Types: ', df.dtypes)
     print('Shape: ', df.shape)
 
-    # Creating histogram
-    df['TIME'].plot(kind="hist", xlabel='Frequency',ylabel='Hour of the day',title='Frequency of Hour of MTA Reporting')
-
-    plt.pyplot.show()
