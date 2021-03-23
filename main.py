@@ -8,7 +8,6 @@ import plotly.express as px
 @ returns the date of the last saturday
 '''
 def findLastSaturdayDate():
-
     saturday = None
     today = datetime.today().date()
     day = today.isoweekday()
@@ -19,7 +18,6 @@ def findLastSaturdayDate():
     return saturday
 
 def pathRidesPerDay(dataframe):
-
     final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS'])
     dataframe = dataframe[dataframe['DIVISION']=='PTH']
     for date in dataframe['DATE'].unique():
@@ -39,10 +37,10 @@ def pathRidesPerDay(dataframe):
                                         'ENTRIES': entries,
                                         'EXITS': exits
                                         }, ignore_index=True)
+
     return final
 
-
-def get_last_mta_dataframe():
+def get_mta_dataframe():
     date = findLastSaturdayDate()
     dateString = date.isoformat().replace('-', '')[2:]
     print('Date To be used: ', date, '\ndate string: ',dateString)
@@ -57,29 +55,29 @@ def get_last_mta_dataframe():
         df.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
         return df
 
-def find_differences(dlist):
 
+def find_differences(dlist):
     if len(dlist) <= 1:
-        return 0
+         return 0
+
     diff = 0
-    diff_list = []
     t = [dlist[0]]
-    for n in range(1, len(dlist)):
+    for n in range(0, len(dlist)):
         if t[-1] <= dlist[n]:
             t.append(dlist[n])
         else:
-            diff_list.append(t[-1] - t[0])
+            diff = diff + t[-1] - t[0]
             t.clear()
             t.append(dlist[n])
     if len(t) == 1:
-        diff_list.append(t[0])
+        diff = diff + t[0]
     else:
-        diff_list.append(t[-1] - t[0])
+        diff = diff + t[-1] - t[0]
     return diff
 
 if __name__ == '__main__':
 
-    df = get_last_mta_dataframe()
+    df = get_mta_dataframe()
     pathTrains = pathRidesPerDay(df)
     pathGroupedEntries = pathTrains.groupby(['STATION', 'DATE'])['ENTRIES'].sum().reset_index()
     pathGroupedExits = pathTrains.groupby(['STATION', 'DATE'])['EXITS'].sum().reset_index()
@@ -92,3 +90,4 @@ if __name__ == '__main__':
 
     print('Data Types: ', df.dtypes)
     print('Shape: ', df.shape)
+
