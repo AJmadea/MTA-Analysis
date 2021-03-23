@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import matplotlib as plt
 from urllib.error import HTTPError
 import plotly.express as px
-import numpy as np
 
 '''
 @ returns the date of the last saturday
