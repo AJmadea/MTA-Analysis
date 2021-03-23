@@ -57,22 +57,18 @@ def get_mta_dataframe():
 
 
 def find_differences(dlist):
+    if len(dlist) <= 1:
+         return 0
 
     diff = 0
-    t = []
-    tCounter = 0
+    t = [dlist[0]]
     for n in range(0, len(dlist)):
-        if len(t) == 0:
+        if t[-1] <= dlist[n]:
             t.append(dlist[n])
         else:
-            tCounter = tCounter + 1
-            if t[tCounter - 1] <= dlist[n]:
-                t.append(dlist[n])
-            else:
-                diff = diff + t[-1] - t[0]
-                tCounter = 0
-                t.clear()
-                t.append(dlist[n])
+            diff = diff + t[-1] - t[0]
+            t.clear()
+            t.append(dlist[n])
     if len(t) == 1:
         diff = diff + t[0]
     else:
