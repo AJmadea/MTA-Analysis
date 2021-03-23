@@ -42,6 +42,7 @@ def pathRidesPerDay(dataframe):
                                         }, ignore_index=True)
     return final
 
+
 def get_last_mta_dataframe():
     date = findLastSaturdayDate()
     dateString = date.isoformat().replace('-', '')[2:]
