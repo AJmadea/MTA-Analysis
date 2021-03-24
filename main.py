@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import matplotlib as plt
 from urllib.error import HTTPError
 import plotly.express as px
-
+import numpy as np
 
 
 def get_n_latest_mta_dataframes(number):
@@ -60,16 +60,16 @@ def pathRidesPerDay(dataframe):
     dataframe = dataframe[dataframe['DIVISION'] == 'PTH']
     for date in dataframe['DATE'].unique():
         for station in dataframe['STATION'].unique():
-            entries = 0
-            exits = 0
+            entries = []
+            exits = []
             for scp in dataframe['SCP'].unique():
                 temp = dataframe[
                     (dataframe['DATE'] == date) & (dataframe['STATION'] == station) & (dataframe['SCP'] == scp)]
                 if len(temp) != 0:
                     entryList = temp['ENTRIES'].to_list()
                     exitList = temp['EXITS'].to_list()
-                    entries = entries + find_differences(entryList)
-                    exits = exits + find_differences(exitList)
+                    entries.append(find_differences(entryList))
+                    exits.append(find_differences(exitList))
 
             final = final.append(other={'DATE': date,
                                         'STATION': station,
@@ -115,6 +115,38 @@ def find_differences(dlist):
         diff = diff + t[-1] - t[0]
     return diff
 
+def modify_for_outliers(dataframe):
+    # Create a STD column for Entries, Exits
+
+    for i in dataframe.index:
+        dataframe.loc[i, 'ENTRIES STD'] = np.asarray(dataframe.loc[i, 'ENTRIES']).std()
+        dataframe.loc[i, 'EXITS STD'] = np.asarray(dataframe.loc[i, 'EXITS']).std()
+
+    for i in dataframe.index:
+        if dataframe.loc[i, 'EXITS STD'] > 2000:
+
+            print(dataframe.loc[i, ])
+            arr = np.asarray(dataframe.loc[i, 'EXITS'])
+            arr.sort()
+            arr[-1] = 0
+            print(arr)
+            dataframe.loc[i, 'EXITS'] = arr.sum()
+        if dataframe.loc[i, 'ENTRIES STD'] > 2000:
+            print(dataframe.loc[i, ['STATION', 'DATE']])
+            arr = np.asarray(dataframe.loc[i, 'ENTRIES'])
+            arr.sort()
+            arr[-1] = 0
+            print(arr)
+            dataframe.loc[i, 'ENTRIES'] = arr.sum()
+
+    dataframe.drop(['ENTRIES STD', 'EXITS STD'], axis=1, inplace=True)
+    return dataframe
+
+def sum_lists_in_rows(dataframe):
+    for i in dataframe.index:
+        dataframe.loc[i, 'ENTRIES'] = np.asarray(dataframe.loc[i, 'ENTRIES']).sum()
+        dataframe.loc[i, 'EXITS'] = np.asarray(dataframe.loc[i, 'EXITS']).sum()
+    return dataframe
 
 if __name__ == '__main__':
 
@@ -123,6 +155,9 @@ if __name__ == '__main__':
 
     #df = get_latest_mta_dataframe()
     pathTrains = pathRidesPerDay(df)
+    pathTrains = modify_for_outliers(pathTrains)
+    pathTrains = sum_lists_in_rows(pathTrains)
+
     pathGroupedEntries = pathTrains.groupby(['STATION', 'DATE'])['ENTRIES'].sum().reset_index()
     pathGroupedExits = pathTrains.groupby(['STATION', 'DATE'])['EXITS'].sum().reset_index()
 
