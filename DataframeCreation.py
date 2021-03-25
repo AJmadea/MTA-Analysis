@@ -1,15 +1,10 @@
 from urllib.error import HTTPError
-
 import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
-
-import main
+import DataframeModification as dfm
 
 
 def get_n_latest_mta_dataframes(number):
-
-    # In one dataframe?
     df = []
     dates = find_saturday_dates_strings(number)
     for date in dates:
@@ -25,7 +20,6 @@ def get_n_latest_mta_dataframes(number):
 
 
 def find_saturday_dates(number):
-
     assert number > 1, 'Number has to be > 1'
     saturday = findLastSaturdayDate()
     l = []
@@ -35,16 +29,13 @@ def find_saturday_dates(number):
 
 
 def find_saturday_dates_strings(number):
-
     dates = find_saturday_dates(number)
     strings = []
     for date in dates:
         strings.append(date.isoformat().replace('-', '')[2:])
     return strings
 
-'''
-@ returns the date of the last saturday
-'''
+
 def findLastSaturdayDate():
     saturday = None
     today = datetime.today().date()
@@ -69,8 +60,8 @@ def pathRidesPerDay(dataframe):
                 if len(temp) != 0:
                     entryList = temp['ENTRIES'].to_list()
                     exitList = temp['EXITS'].to_list()
-                    entries.append(main.find_differences(entryList))
-                    exits.append(main.find_differences(exitList))
+                    entries.append(dfm.find_differences(entryList))
+                    exits.append(dfm.find_differences(exitList))
 
             final = final.append(other={'DATE': date,
                                         'STATION': station,
@@ -79,6 +70,7 @@ def pathRidesPerDay(dataframe):
                                         }, ignore_index=True)
 
     return final
+
 
 def get_latest_mta_dataframe():
     date = findLastSaturdayDate()
