@@ -5,96 +5,7 @@ from urllib.error import HTTPError
 import plotly.express as px
 import numpy as np
 
-
-def get_n_latest_mta_dataframes(number):
-
-    # In one dataframe?
-    df = []
-    dates = find_saturday_dates_strings(number)
-    for date in dates:
-        baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(date)
-        print('Trying to read info from date: ', date)
-        temp = pd.read_csv(baseURL)
-        df.append(temp)
-
-    all = pd.concat(df)
-    errorColumn = all.columns[-1]
-    all.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
-    return all
-
-
-def find_saturday_dates(number):
-
-    assert number > 1, 'Number has to be > 1'
-    saturday = findLastSaturdayDate()
-    l = []
-    for i in range(0, number):
-        l.append(saturday - timedelta(days=7*i))
-    return l
-
-
-def find_saturday_dates_strings(number):
-
-    dates = find_saturday_dates(number)
-    strings = []
-    for date in dates:
-        strings.append(date.isoformat().replace('-', '')[2:])
-    return strings
-
-'''
-@ returns the date of the last saturday
-'''
-def findLastSaturdayDate():
-    saturday = None
-    today = datetime.today().date()
-    day = today.isoweekday()
-
-    # Ternary Operator to choose the previous saturday
-    # -(day % 6 + 1) changes isoformat for each day to the previous saturday
-    saturday = (today + timedelta(days=-7)) if day == 6 else today + timedelta(days=-(day % 6 + 1))
-    return saturday
-
-
-def pathRidesPerDay(dataframe):
-    final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS'])
-    dataframe = dataframe[dataframe['DIVISION'] == 'PTH']
-    for date in dataframe['DATE'].unique():
-        for station in dataframe['STATION'].unique():
-            entries = []
-            exits = []
-            for scp in dataframe['SCP'].unique():
-                temp = dataframe[
-                    (dataframe['DATE'] == date) & (dataframe['STATION'] == station) & (dataframe['SCP'] == scp)]
-                if len(temp) != 0:
-                    entryList = temp['ENTRIES'].to_list()
-                    exitList = temp['EXITS'].to_list()
-                    entries.append(find_differences(entryList))
-                    exits.append(find_differences(exitList))
-
-            final = final.append(other={'DATE': date,
-                                        'STATION': station,
-                                        'ENTRIES': entries,
-                                        'EXITS': exits
-                                        }, ignore_index=True)
-
-    return final
-
-
-def get_latest_mta_dataframe():
-    date = findLastSaturdayDate()
-    dateString = date.isoformat().replace('-', '')[2:]
-    print('Date To be used: ', date, '\ndate string: ', dateString)
-    try:
-        baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(dateString)
-        df = pd.read_csv(baseURL)
-    except HTTPError as err:
-        print('something went wrong')
-    finally:
-        # The last column is supposed to be 'EXITS' but it has alot of spaces after it right now
-        errorColumn = df.columns[-1]
-        df.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
-        return df
-
+import DataframeCreation as dfc
 
 def find_differences(dlist):
     if len(dlist) <= 1:
@@ -124,19 +35,16 @@ def modify_for_outliers(dataframe):
 
     for i in dataframe.index:
         if dataframe.loc[i, 'EXITS STD'] > 2000:
-
             print(dataframe.loc[i, ])
             arr = np.asarray(dataframe.loc[i, 'EXITS'])
             arr.sort()
             arr[-1] = 0
-            print(arr)
             dataframe.loc[i, 'EXITS'] = arr.sum()
         if dataframe.loc[i, 'ENTRIES STD'] > 2000:
-            print(dataframe.loc[i, ['STATION', 'DATE']])
+            print(dataframe.loc[i, ])
             arr = np.asarray(dataframe.loc[i, 'ENTRIES'])
             arr.sort()
             arr[-1] = 0
-            print(arr)
             dataframe.loc[i, 'ENTRIES'] = arr.sum()
 
     dataframe.drop(['ENTRIES STD', 'EXITS STD'], axis=1, inplace=True)
@@ -150,13 +58,15 @@ def sum_lists_in_rows(dataframe):
 
 if __name__ == '__main__':
 
-    df = get_n_latest_mta_dataframes(5)
+    df = dfc.get_n_latest_mta_dataframes(10)
     print(df.shape)
 
     #df = get_latest_mta_dataframe()
-    pathTrains = pathRidesPerDay(df)
+    pathTrains = dfc.pathRidesPerDay(df)
     pathTrains = modify_for_outliers(pathTrains)
     pathTrains = sum_lists_in_rows(pathTrains)
+
+    pathTrains.to_csv('past_ten_dataframes_210109_to_210320.csv')
 
     pathGroupedEntries = pathTrains.groupby(['STATION', 'DATE'])['ENTRIES'].sum().reset_index()
     pathGroupedExits = pathTrains.groupby(['STATION', 'DATE'])['EXITS'].sum().reset_index()
