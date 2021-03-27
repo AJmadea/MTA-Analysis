@@ -1,6 +1,52 @@
 import numpy as np
 from datetime import date as dt
 
+
+def create_date_dictionary(df):
+    d = {}
+    dates = df['DATE'].unique()
+    for date in dates:
+        string = '{}-{}-{}'.format(date[6:], date[0:2], date[3:5])
+        d.__setitem__(date, dt.fromisoformat(string))
+    return d
+
+
+def add_date_related_columns(df):
+    d = create_date_dictionary(df)
+
+    for i in df.index:
+        newDate = d.get(df.loc[i, 'DATE'])
+        df.loc[i, 'ISOWEEKDAY'] = newDate.isoweekday()
+        df.loc[i, 'MONTH'] = newDate.month
+        df.loc[i, 'DAY'] = newDate.day
+        df.loc[i, 'YEAR'] = newDate.year
+
+
+def drop_weekends(df):
+    if 'ISOWEEKDAY' not in df.columns:
+        df = get_isodate_number(df)
+
+    return df[df['ISOWEEKDAY'] >= 6]
+
+
+def drop_weekdays(df):
+    if 'ISOWEEKDAY' not in df.columns:
+        df = get_isodate_number(df)
+
+    return df[df['ISOWEEKDAY'] < 6]
+
+
+def weekend_dependent_split(df):
+    frames = []
+
+    weekends = df[df['ISODATE'] >= 6]
+    weekdays = df[df['ISODATE'] < 6]
+
+    frames.append(weekdays)
+    frames.append(weekends)
+    return frames
+
+
 def get_isodate_number(df):
     #                       0123456789
     # create dictionary of 'MM/DD/YYYY' KEY to YYYY-MM-DD VALUE
@@ -11,7 +57,7 @@ def get_isodate_number(df):
         d.__setitem__(date, dt.fromisoformat(string).isoweekday())
 
     for i in df.index:
-        df.loc[i, 'ISODATE NUMBER'] = d.get(df.loc[i, 'DATE'])
+        df.loc[i, 'ISOWEEKDAY'] = d.get(df.loc[i, 'DATE'])
 
     return df
 
