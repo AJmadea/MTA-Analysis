@@ -3,6 +3,15 @@ import DataframeModification as dfm
 import pandas as pd
 
 
+def append_new_data_to_csv(fileName):
+    oldData = pd.read_csv(fileName)
+    newData = parse_pathTrains(1)
+    saturday = dfc.find_saturday_dates_strings(1)
+    totalData = pd.concat([oldData, newData])
+    newName = 'pathTrains_{}_to_{}.csv'.format(fileName.split('_')[0], saturday)
+    totalData.to_csv()
+
+
 def parse_pathTrains(number):
     df = dfc.get_n_latest_mta_dataframes(number)
     path = dfc.pathRidesPerDay(df)
