@@ -1,13 +1,21 @@
 import plotly.express as px
 import DataframeModification as dfm
+#from multipledispatch import dispatch
+
 
 def graph_scatter(df):
+    graph_scatter(df=df, title='Entries v.s. Exits for PATH Stations')
 
-    df = dfm.get_isodate_number(df)
+
+def graph_scatter(df, title):
+    if 'ISOWEEKDAY' not in df.columns:
+        df = dfm.get_isodate_number(df)
+
     fig = px.scatter(df, x='ENTRIES', y='EXITS', color='STATION',
-                     symbol='ISODATE NUMBER', title='Entries v.s. Exits for PATH Stations')
+                     symbol='ISOWEEKDAY', title=title)
 
     fig.show()
+
 
 def graph_pathTrains_over_time(pathTrains):
     pathGroupedEntries = pathTrains.groupby(['STATION', 'DATE'])['ENTRIES'].sum().reset_index()
