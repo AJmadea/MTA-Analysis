@@ -6,11 +6,11 @@ import numpy as np
 import DataframeCreation as dfc
 import DataframeModification as dfm
 import Graphs as g
+import CSVFile as f
 
 if __name__ == '__main__':
-    pathTrains = pd.read_csv('data/past_ten_dataframes_210109_to_210320.csv')
-    print(pathTrains.shape)
-    g.graph_scatter(pathTrains)
-    pathTrains = dfm.get_isodate_number(pathTrains)
-    pathTrains.drop('Unnamed: 0', axis=1, inplace=True)
-    print(pathTrains.head())
+    path = pd.read_csv('pathTrains_210102_to_210320.csv')
+    weekdays, weekends = dfm.weekend_dependent_split(path)
+
+    g.graph_scatter(df=weekdays, title="Weekdays Entries v.s. Exits")
+    g.graph_scatter(df=weekends, title="Weekends Entries v.s. Exits")
