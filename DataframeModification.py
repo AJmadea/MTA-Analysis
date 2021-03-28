@@ -37,8 +37,11 @@ def drop_weekdays(df):
 
 
 def weekend_dependent_split(df):
-    weekends = df[df['ISODATE'] >= 6]
-    weekdays = df[df['ISODATE'] < 6]
+    if 'ISOWEEKDAY' not in df.columns:
+        df = get_isodate_number(df)
+
+    weekends = df[df['ISOWEEKDAY'] >= 6]
+    weekdays = df[df['ISOWEEKDAY'] < 6]
 
     return weekdays, weekends
 
