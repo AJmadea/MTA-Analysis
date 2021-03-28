@@ -20,7 +20,7 @@ def get_n_latest_mta_dataframes(number):
 
 
 def find_saturday_dates(number):
-    assert number > 1, 'Number has to be > 1'
+    assert number >= 1, 'Number has to be > 1'
     saturday = findLastSaturdayDate()
     l = []
     for i in range(0, number):
@@ -42,8 +42,8 @@ def findLastSaturdayDate():
     day = today.isoweekday()
 
     # Ternary Operator to choose the previous saturday
-    # -(day % 6 + 1) changes isoformat for each day to the previous saturday
-    saturday = (today + timedelta(days=-7)) if day == 6 else today + timedelta(days=-(day % 6 + 1))
+    print('today', today.isoweekday())
+    saturday = (today + timedelta(days=-1)) if day == 7 else today + timedelta(days=-(day + 1))
     return saturday
 
 
