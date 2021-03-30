@@ -112,7 +112,7 @@ def sum_lists_in_rows(dataframe):
     return dataframe
 
 
-def flatten_newark(df):
+def combine_newark(df):
     stations = df['STATION'].unique().tolist()
 
     newarkStations = []
@@ -132,7 +132,7 @@ def flatten_newark(df):
         exits = 0
         for station in newarkStations:
             temp = df[(df['DATE'] == date) & (df['STATION'] == station)]
-            entries = entries + np.asarray(temp['ENTRIES'].to_list()).sum()
+            entries = entries + temp['ENTRIES'].to_numpy().sum()
             exits = exits + temp['EXITS'].to_numpy().sum()
 
         # print("Appending: ", "{} {} {}".format(date, entries, exits))
@@ -149,4 +149,52 @@ def flatten_newark(df):
             df.drop(index=i, axis=0, inplace=True)
 
     print('After mod ', df.shape)
+    return df
+
+
+def combine_wtc(df):
+    stations = df['STATION'].unique().tolist()
+
+    wtcStations = ['PATH WTC 2', 'PATH NEW WTC']
+    for s in wtcStations:
+        if s in stations:
+            stations.remove(s)
+
+    print('WTC Stations : ', wtcStations)
+    stations.append("WTC")
+    print('Non-WTC stations: ', stations)
+
+    for date in df['DATE'].unique():
+        entries = 0
+        exits = 0
+        for station in wtcStations:
+            temp = df[(df['DATE'] == date) & (df['STATION'] == station)]
+            entries = entries + temp['ENTRIES'].to_numpy().sum()
+            exits = exits + temp['EXITS'].to_numpy().sum()
+
+        # print("Appending: ", "{} {} {}".format(date, entries, exits))
+        df = df.append(other={'STATION': "WTC",
+                              'DATE': date,
+                              'ENTRIES': entries,
+                              'EXITS': exits
+                              }, ignore_index=True)
+
+    print('Before mod ', df.shape)
+
+    for i in df.index:
+        if df.loc[i, 'STATION'] in wtcStations:
+            df.drop(index=i, axis=0, inplace=True)
+
+    print('After mod ', df.shape)
+    return df
+
+
+def entry_exit_ratio(df):
+    df['ENTRIES/EXITS'] = df['ENTRIES'] / df['EXITS']
+    return df
+
+
+def combine_similar_rows(df):
+    df = combine_wtc(df)
+    df = flatten_newark(df)
     return df
