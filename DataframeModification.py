@@ -1,6 +1,6 @@
 import numpy as np
 from datetime import date as dt
-
+import pandas as pd
 
 def create_date_dictionary(df):
     d = {}
@@ -111,3 +111,42 @@ def sum_lists_in_rows(dataframe):
         dataframe.loc[i, 'EXITS'] = np.asarray(dataframe.loc[i, 'EXITS']).sum()
     return dataframe
 
+
+def flatten_newark(df):
+    stations = df['STATION'].unique().tolist()
+
+    newarkStations = []
+    for s in stations:
+        if 'NEWARK' in s:
+            newarkStations.append(s)
+            stations.remove(s)
+
+    newarkStations.append("NEWARK C")
+    stations.remove('NEWARK C')
+
+    print('Newark Stations : ', newarkStations)
+    stations.append("NEWARK")
+    print('Non-newark stations: ', stations)
+    for date in df['DATE'].unique():
+        entries = 0
+        exits = 0
+        for station in newarkStations:
+            temp = df[(df['DATE'] == date) & (df['STATION'] == station)]
+            entries = entries + np.asarray(temp['ENTRIES'].to_list()).sum()
+            exits = exits + temp['EXITS'].to_numpy().sum()
+
+        # print("Appending: ", "{} {} {}".format(date, entries, exits))
+        df = df.append(other={'STATION': "NEWARK",
+                              'DATE': date,
+                              'ENTRIES': entries,
+                              'EXITS': exits
+                              }, ignore_index=True)
+
+    print('Before mod ', df.shape)
+
+    for i in df.index:
+        if df.loc[i, 'STATION'] in newarkStations:
+            df.drop(index=i, axis=0, inplace=True)
+
+    print('After mod ', df.shape)
+    return df
