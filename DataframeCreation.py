@@ -47,29 +47,50 @@ def findLastSaturdayDate():
     return saturday
 
 
-def pathRidesPerDay(dataframe):
-    final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS'])
-    dataframe = dataframe[dataframe['DIVISION'] == 'PTH']
+def rides_per_day(dataframe):
+    final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS', 'DIVISION'])
+    totalDate = dataframe['DATE'].nunique()
+    k = 0
     for date in dataframe['DATE'].unique():
+        k = k + 1
+        print("Current Date: ", k, ' / ', totalDate)
         for station in dataframe['STATION'].unique():
             entries = []
             exits = []
-            for scp in dataframe['SCP'].unique():
-                temp = dataframe[
-                    (dataframe['DATE'] == date) & (dataframe['STATION'] == station) & (dataframe['SCP'] == scp)]
+            print('Date & Station: {} {}'.format(date, station))
+            temp = dataframe[(dataframe['DATE'] == date) & (dataframe['STATION'] == station)]
+            for scp in temp['SCP'].unique():
+                temp2 = temp[(temp['SCP'] == scp)]
                 if len(temp) != 0:
-                    entryList = temp['ENTRIES'].to_list()
-                    exitList = temp['EXITS'].to_list()
+                    entryList = temp2['ENTRIES'].to_list()
+                    exitList = temp2['EXITS'].to_list()
                     entries.append(dfm.find_differences(entryList))
                     exits.append(dfm.find_differences(exitList))
 
             final = final.append(other={'DATE': date,
                                         'STATION': station,
                                         'ENTRIES': entries,
-                                        'EXITS': exits
+                                        'EXITS': exits,
                                         }, ignore_index=True)
-
     return final
+
+
+def rides_per_day_partition_division(dataframe):
+    dataframe['STATION'] = dataframe['STATION'] + " " + dataframe['DIVISION']
+
+    divisions = dataframe['DIVISION'].unique()
+    newFrames = []
+    for division in divisions:
+        newFrames.append(rides_per_day( dataframe[ dataframe['DIVISION'] == division] ))
+    return pd.concat(newFrames)
+
+
+def non_path_rides_per_day(dataframe):
+    return rides_per_day(dataframe[dataframe['DIVISION'] != 'PTH'])
+
+
+def pathRidesPerDay(dataframe):
+    return rides_per_day(dataframe[dataframe['DIVISION'] == 'PTH'])
 
 
 def get_latest_mta_dataframe():
