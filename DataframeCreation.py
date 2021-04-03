@@ -47,6 +47,35 @@ def findLastSaturdayDate():
     return saturday
 
 
+def rides_for_each_station_per_day(df):
+    final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS'])
+
+    for date in df['DATE'].unique():
+        for station in df['STATION'].unique():
+            entries = []
+            exits  = []
+            for division in df['DIVISION'].unique():
+                temp = df[(df['DATE'] == date) &
+                          (df['STATION'] == station) &
+                          (df['DIVISION'] == division)]
+                for scp in temp['SCP'].unique():
+                    for unit in temp['UNIT'].unique():
+                        temp2 = temp[(temp['SCP'] == scp) & (temp['UNIT'] == unit)]
+                        if len(temp) != 0:
+                            entryList = temp2['ENTRIES'].to_list()
+                            exitList = temp2['EXITS'].to_list()
+                            entries.append(dfm.find_differences(entryList))
+                            exits.append(dfm.find_differences(exitList))
+                    print(entries, '\n', exits)
+                    final = final.append(other={'DATE': date,
+                                                'STATION': station,
+                                                'ENTRIES': entries,
+                                                'EXITS': exits,
+                                                }, ignore_index=True)
+
+    return final
+
+
 def rides_per_day(dataframe):
     final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS', 'DIVISION'])
     totalDate = dataframe['DATE'].nunique()
@@ -60,13 +89,14 @@ def rides_per_day(dataframe):
             print('Date & Station: {} {}'.format(date, station))
             temp = dataframe[(dataframe['DATE'] == date) & (dataframe['STATION'] == station)]
             for scp in temp['SCP'].unique():
-                temp2 = temp[(temp['SCP'] == scp)]
-                if len(temp) != 0:
-                    entryList = temp2['ENTRIES'].to_list()
-                    exitList = temp2['EXITS'].to_list()
-                    entries.append(dfm.find_differences(entryList))
-                    exits.append(dfm.find_differences(exitList))
-
+                for unit in temp['UNIT'].unique():
+                    temp2 = temp[(temp['SCP'] == scp) & (temp['UNIT'] == unit)]
+                    if len(temp) != 0:
+                        entryList = temp2['ENTRIES'].to_list()
+                        exitList = temp2['EXITS'].to_list()
+                        entries.append(dfm.find_differences(entryList))
+                        exits.append(dfm.find_differences(exitList))
+            print(entries, '\n', exits)
             final = final.append(other={'DATE': date,
                                         'STATION': station,
                                         'ENTRIES': entries,
@@ -107,3 +137,25 @@ def get_latest_mta_dataframe():
         errorColumn = df.columns[-1]
         df.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
         return df
+
+
+def get_nunique_grouped_by_station(rawData):
+    listDicts = {}
+    allStations = rawData['STATION'].unique().tolist()
+    for station in allStations:
+
+        temp = rawData[rawData['STATION'] == station]
+        tempMap = {}
+        for c in temp.columns:
+            tempMap.__setitem__(c, temp[c].nunique())
+        tempMap.__setitem__('STATION', station)
+        listDicts.__setitem__(station, tempMap)
+
+    stationInformation = pd.DataFrame(data={}, columns=rawData.columns)
+
+    for station in allStations:
+        stationInformation = stationInformation.append(other=listDicts[station], ignore_index=True)
+
+    stationInformation.set_index('STATION', inplace=True)
+
+    return stationInformation
