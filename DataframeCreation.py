@@ -7,16 +7,7 @@ import DataframeModification as dfm
 def get_n_latest_mta_dataframes(number):
     df = []
     dates = find_saturday_dates_strings(number)
-    for date in dates:
-        baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(date)
-        print('Trying to read info from date: ', date)
-        temp = pd.read_csv(baseURL)
-        df.append(temp)
-
-    all = pd.concat(df)
-    errorColumn = all.columns[-1]
-    all.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
-    return all
+    return get_data_from_date_string_list(dates)
 
 
 def find_saturday_dates(number):
@@ -47,82 +38,6 @@ def findLastSaturdayDate():
     return saturday
 
 
-def rides_for_each_station_per_day(df):
-    final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS'])
-
-    for date in df['DATE'].unique():
-        for station in df['STATION'].unique():
-            entries = []
-            exits  = []
-            for division in df['DIVISION'].unique():
-                temp = df[(df['DATE'] == date) &
-                          (df['STATION'] == station) &
-                          (df['DIVISION'] == division)]
-                for scp in temp['SCP'].unique():
-                    for unit in temp['UNIT'].unique():
-                        temp2 = temp[(temp['SCP'] == scp) & (temp['UNIT'] == unit)]
-                        if len(temp) != 0:
-                            entryList = temp2['ENTRIES'].to_list()
-                            exitList = temp2['EXITS'].to_list()
-                            entries.append(dfm.find_differences(entryList))
-                            exits.append(dfm.find_differences(exitList))
-                    print(entries, '\n', exits)
-                    final = final.append(other={'DATE': date,
-                                                'STATION': station,
-                                                'ENTRIES': entries,
-                                                'EXITS': exits,
-                                                }, ignore_index=True)
-
-    return final
-
-
-def rides_per_day(dataframe):
-    final = pd.DataFrame(data={}, columns=['DATE', 'STATION', 'ENTRIES', 'EXITS', 'DIVISION'])
-    totalDate = dataframe['DATE'].nunique()
-    k = 0
-    for date in dataframe['DATE'].unique():
-        k = k + 1
-        print("Current Date: ", k, ' / ', totalDate)
-        for station in dataframe['STATION'].unique():
-            entries = []
-            exits = []
-            print('Date & Station: {} {}'.format(date, station))
-            temp = dataframe[(dataframe['DATE'] == date) & (dataframe['STATION'] == station)]
-            for scp in temp['SCP'].unique():
-                for unit in temp['UNIT'].unique():
-                    temp2 = temp[(temp['SCP'] == scp) & (temp['UNIT'] == unit)]
-                    if len(temp) != 0:
-                        entryList = temp2['ENTRIES'].to_list()
-                        exitList = temp2['EXITS'].to_list()
-                        entries.append(dfm.find_differences(entryList))
-                        exits.append(dfm.find_differences(exitList))
-            print(entries, '\n', exits)
-            final = final.append(other={'DATE': date,
-                                        'STATION': station,
-                                        'ENTRIES': entries,
-                                        'EXITS': exits,
-                                        }, ignore_index=True)
-    return final
-
-
-def rides_per_day_partition_division(dataframe):
-    dataframe['STATION'] = dataframe['STATION'] + " " + dataframe['DIVISION']
-
-    divisions = dataframe['DIVISION'].unique()
-    newFrames = []
-    for division in divisions:
-        newFrames.append(rides_per_day( dataframe[ dataframe['DIVISION'] == division] ))
-    return pd.concat(newFrames)
-
-
-def non_path_rides_per_day(dataframe):
-    return rides_per_day(dataframe[dataframe['DIVISION'] != 'PTH'])
-
-
-def pathRidesPerDay(dataframe):
-    return rides_per_day(dataframe[dataframe['DIVISION'] == 'PTH'])
-
-
 def get_latest_mta_dataframe():
     date = findLastSaturdayDate()
     dateString = date.isoformat().replace('-', '')[2:]
@@ -137,6 +52,75 @@ def get_latest_mta_dataframe():
         errorColumn = df.columns[-1]
         df.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
         return df
+
+
+def find_last_saturday_string():
+    return findLastSaturdayDate().isoformat().replace('-', '')[2:]
+
+
+def get_last_saturday_from_date(date):
+    # Convert string to date  if date is of string
+    if type(date) is str:
+        date = datetime.fromisoformat(date).date()
+
+    # date must be before today
+    assert date < datetime.today().date()
+
+    # date must be a saturday (6)
+    # if the date is not a saturday, then the last satruday will be used
+    day = date.isoweekday()
+    if day != 6:
+        delta = -1 if day == 7 else -(day + 1)
+        date = date + timedelta(days=delta)
+    return date
+
+
+def find_data_from_date_n_iterations(fromDate, n):
+    todayDate = datetime.today().date()
+    date = get_last_saturday_from_date(fromDate)
+
+    df = []
+    dates = []
+    for i in range(0, n):
+        tempDate = date + timedelta(days=7*i)
+        if tempDate < todayDate: # prevents date ahead of today from being added
+            dates.append(tempDate.isoformat().replace('-', '')[2:])
+        else:
+            print('Unable to read data from date: ', tempDate, ' since it is in the future')
+
+    return get_data_from_date_string_list(dates)
+
+
+def get_data_from_date_to_date(fromDate, toDate):
+
+    fromSatDate = get_last_saturday_from_date(fromDate)
+    toSatDate = get_last_saturday_from_date(toDate)
+
+    assert fromSatDate <= toSatDate, 'fromDate must be < toDate'
+
+    dates = []
+    weeks = int((toSatDate - fromSatDate).days / 7)
+
+    for i in range(0, weeks+1):
+        dates.append((fromSatDate + timedelta(days=7*i)).isoformat().replace('-', '')[2:])
+
+    print(dates)
+
+    return get_data_from_date_string_list(dates)
+
+
+def get_data_from_date_string_list(listOfDates):
+    df = []
+    for d in listOfDates:
+        baseURL = "http://web.mta.info/developers/data/nyct/turnstile/turnstile_{}.txt".format(d)
+        print('Trying to read info from date: ', d)
+        temp = pd.read_csv(baseURL)
+        df.append(temp)
+
+    all = pd.concat(df)
+    errorColumn = all.columns[-1]
+    all.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
+    return all
 
 
 def get_nunique_grouped_by_station(rawData):
@@ -159,3 +143,16 @@ def get_nunique_grouped_by_station(rawData):
     stationInformation.set_index('STATION', inplace=True)
 
     return stationInformation
+
+
+def find_total_rides_per_day(df):
+    final = pd.DataFrame()
+
+    for date in df['DATE'].unique():
+        temp = df[df['DATE'] == date]
+        entries = temp['ENTRIES'].sum()
+        exits = temp['EXITS'].sum()
+        final = final.append(other={'DATE': date,
+                                    'ENTRIES': entries,
+                                    'EXITS': exits}, ignore_index=True)
+    return final
