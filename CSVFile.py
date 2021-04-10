@@ -18,6 +18,28 @@ def analyze_path_trains(fileName):
     pathTrains.to_csv('data/path_trains_dbscan_analysis_{}.csv'.format(fileName[2]))
 
 
+def rides_over_time_dbscan(fromDate, toDate, a,b,c,x,y):
+    saturdays = dfc.find_saturday_dates_strings(5)
+    fromDate = dfc.get_saturday_string_from_date(fromDate)
+    toDate = dfc.get_saturday_string_from_date(toDate)
+
+    for eps in range(a, b, c):
+        for min_samples in range(x, y):
+            fileInput = 'data/dbscan_data_outputs/dbscan_eps={}_min_samples={}_from_{}_to_{}.csv'.format(
+                eps, min_samples, fromDate, toDate)
+
+            print('Reading from', fileInput)
+            temp = pd.read_csv(fileInput)
+            temp = dfc.find_total_rides_per_day(temp)
+
+
+            fileOutput = 'data/dbscan_over_time/dbscan_over_time_eps={}_min_samples={}_from_{}_to_{}.csv'.format\
+                (eps, min_samples, fromDate, toDate)
+            print('outputting to:', fileOutput)
+            temp.to_csv(fileOutput)
+
+
+
 def create_rides_over_time_csv(df):
     ridesPerDay = dfc.find_total_rides_per_day(df)
     ridesPerDay.sort_values(by='DATE', inplace=True)
