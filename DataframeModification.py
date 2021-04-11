@@ -2,12 +2,22 @@ import numpy as np
 from datetime import date as dt
 import pandas as pd
 
+
 def create_date_dictionary(df):
     d = {}
     dates = df['DATE'].unique()
     for date in dates:
         string = '{}-{}-{}'.format(date[6:], date[0:2], date[3:5])
         d.__setitem__(date, dt.fromisoformat(string))
+    return d
+
+
+def create_date_dictionary_string(df):
+    d = {}
+    dates = df['DATE'].unique()
+    for date in dates:
+        string = '{}-{}-{}'.format(date[6:], date[0:2], date[3:5])
+        d.__setitem__(date, string)
     return d
 
 
@@ -79,37 +89,6 @@ def find_differences(dlist):
     else:
         diff = diff + t[-1] - t[0]
     return diff
-
-
-def modify_for_outliers(dataframe):
-    # Create a STD column for Entries, Exits
-    for i in dataframe.index:
-        dataframe.loc[i, 'ENTRIES STD'] = np.asarray(dataframe.loc[i, 'ENTRIES']).std()
-        dataframe.loc[i, 'EXITS STD'] = np.asarray(dataframe.loc[i, 'EXITS']).std()
-
-    for i in dataframe.index:
-        if dataframe.loc[i, 'EXITS STD'] > 2000:
-            print(dataframe.loc[i, ])
-            arr = np.asarray(dataframe.loc[i, 'EXITS'])
-            arr.sort()
-            arr[-1] = 0
-            dataframe.loc[i, 'EXITS'] = arr.sum()
-        if dataframe.loc[i, 'ENTRIES STD'] > 2000:
-            print(dataframe.loc[i, ])
-            arr = np.asarray(dataframe.loc[i, 'ENTRIES'])
-            arr.sort()
-            arr[-1] = 0
-            dataframe.loc[i, 'ENTRIES'] = arr.sum()
-
-    dataframe.drop(['ENTRIES STD', 'EXITS STD'], axis=1, inplace=True)
-    return dataframe
-
-
-def sum_lists_in_rows(dataframe):
-    for i in dataframe.index:
-        dataframe.loc[i, 'ENTRIES'] = np.asarray(dataframe.loc[i, 'ENTRIES']).sum()
-        dataframe.loc[i, 'EXITS'] = np.asarray(dataframe.loc[i, 'EXITS']).sum()
-    return dataframe
 
 
 def combine_newark(df):
@@ -196,5 +175,18 @@ def entry_exit_ratio(df):
 
 def combine_similar_rows(df):
     df = combine_wtc(df)
-    df = flatten_newark(df)
+    df = combine_newark(df)
     return df
+
+
+def create_datetime_objects(df):
+    map = create_date_dictionary_string(df)
+    df['DATE TIME'] = ' '
+    for i in df.index:
+        datetemp = map.get(df.loc[i, 'DATE'])
+        timetemp = df.loc[i, 'TIME']
+        dateTimeString = '{} {}'.format(datetemp, timetemp)
+        df.loc[i, 'DATE TIME'] = dt.fromisoformat(dateTimeString)
+    return df
+
+
