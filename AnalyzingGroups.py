@@ -2,15 +2,16 @@ from sklearn.cluster import DBSCAN
 import pandas as pd
 import numpy as np
 
-def analyze(df):
+
+def analyze(df, eps, min_samples):
     final = pd.DataFrame(data={}, columns=['STATION', 'DATE', 'ENTRIES', 'EXITS'])
-    db = DBSCAN(eps=1000, min_samples=2)
+    db = DBSCAN(eps=eps, min_samples=min_samples)
     print('Number of iterations: ', df['STATION'].nunique() * df['DATE'].nunique())
 
     outlierCounter = 0
     for station in df['STATION'].unique():
+        print('Currently fitting: ', station)
         for date in df['DATE'].unique():
-            print(station, ' ', date)
             f = df[(df['STATION'] == station) & (df['DATE'] == date)]
 
             if f[['ENTRIES', 'EXITS']].shape[0] == 0:
@@ -52,3 +53,4 @@ def count_negative_groups(data):
 
     return '{} Entries & {} Exits are negative'.format(len(negativeEntriesDf),
                                                        len(negativeExitsDf))
+
