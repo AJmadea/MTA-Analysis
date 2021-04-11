@@ -38,6 +38,16 @@ def findLastSaturdayDate():
     return saturday
 
 
+def get_saturday_string_from_date(date):
+    if type(date) is str:
+        date = get_last_saturday_from_date(date)
+
+    return date.isoformat().replace('-', '')[2:]
+
+
+
+
+
 def get_latest_mta_dataframe():
     date = findLastSaturdayDate()
     dateString = date.isoformat().replace('-', '')[2:]
@@ -73,6 +83,10 @@ def get_last_saturday_from_date(date):
         delta = -1 if day == 7 else -(day + 1)
         date = date + timedelta(days=delta)
     return date
+
+
+def get_last_saturday_string_from_date(date):
+    return get_last_saturday_from_date(date).isoformat().replace('-', '')[2:]
 
 
 def find_data_from_date_n_iterations(fromDate, n):
