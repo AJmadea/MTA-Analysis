@@ -5,23 +5,49 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import mean_absolute_error
 import plotly.express as px
 import DataframeCreation as dfc
+from urllib.error import HTTPError
 
-def graph_errors(startEPS, stopEPS, stepEPS, startSample, stopSample, fromDate, toDate):
+
+def get_error_frame_from_file(startEPS, stopEPS, stepEPS, startSample, stopSample, fromDate, toDate, ):
     fromDate = dfc.get_last_saturday_string_from_date(fromDate)
     toDate = dfc.get_last_saturday_string_from_date(toDate)
-    fileName = 'data/error_dataframes/error_dataframe_eps=[{},{}]_min_samples=[{},{}]_from_{}_to_{}.csv'.\
-        format(startEPS, stopEPS - stepEPS, startSample, stopSample-1, fromDate, toDate)
+    fileName = 'data/error_dataframes/error_dataframe_eps=[{},{}]_min_samples=[{},{}]_from_{}_to_{}.csv'. \
+        format(startEPS, stopEPS - stepEPS, startSample, stopSample - 1, fromDate, toDate)
 
     data = pd.read_csv(fileName)
+    return data
 
-    r2_graph = px.line_3d(data, x='EPS',  y='MIN_SAMPLES', z='R2 ENTRIES', title='R^2 of DBSCAN Analysis')
+
+def graph_all_errors_3D(startEPS, stopEPS, stepEPS, startSample, stopSample, fromDate, toDate):
+    errors = ['R2', 'MSE', 'MAE']
+    attrTypes = ['ENTRIES', 'EXITS']
+    for e in errors:
+        for a in attrTypes:
+            graph_errors(startEPS, stopEPS, stepEPS, startSample, stopSample, fromDate, toDate,
+                         '{} {}'.format(e, a))
+
+
+def graph_errors(startEPS, stopEPS, stepEPS, startSample, stopSample, fromDate, toDate, whatToGraph):
+    data = get_error_frame_from_file(startEPS, stopEPS, stepEPS, startSample, stopSample, fromDate, toDate)
+
+    if whatToGraph not in data.columns:
+        whatToGraph = 'R2 ENTRIES'
+
+    r2_graph = px.line_3d(data, x='EPS', y='MIN_SAMPLES', z=whatToGraph, title='DBSCAN Parameter Analysis: {}'.
+                              format(whatToGraph))
     r2_graph.show()
 
 
 def get_correct_values(dates):
     # Getting data from file.
-    validationCSV = 'data/MTA_recent_ridership_data_20210406.csv'
-    validation = pd.read_csv(validationCSV)
+    try:
+        validationCSV = 'http://new.mta.info/document/20441'
+        validation = pd.read_csv(validationCSV)
+    except HTTPError as err:
+        err.print()
+        print("Something happened when trying to get the info from new.mta.info")
+        print('Will attempt to read it locally...')
+        validation = pd.read_csv('data/MTA_recent_ridership_data_20210408.csv')
 
     # Cleaning up column names and dropping unwanted columns
     validation.rename({'Subways: Total Estimated Ridership': 'CORRECT TOTAL'}, axis=1, inplace=True)
@@ -43,12 +69,11 @@ def get_correct_values(dates):
     return validation
 
 
-def calculate_mse_for_all_dbscan(a, b, c, x, y, fromDate, toDate):
-
+def calculate_errors_for_all_dbscan(a, b, c, x, y, fromDate, toDate):
     fromDate = dfc.get_last_saturday_string_from_date(fromDate)
     toDate = dfc.get_last_saturday_string_from_date(toDate)
 
-    fileInput = 'data/dbscan_data_outputs/dbscan_eps={}_min_samples={}_from_{}_to_{}.csv'.format(a,x,fromDate,toDate)
+    fileInput = 'data/dbscan_data_outputs/dbscan_eps={}_min_samples={}_from_{}_to_{}.csv'.format(a, x, fromDate, toDate)
     data = pd.read_csv(fileInput)
     dates = data['DATE'].unique()
     errData = pd.DataFrame()
@@ -57,7 +82,7 @@ def calculate_mse_for_all_dbscan(a, b, c, x, y, fromDate, toDate):
 
     for eps in range(a, b, c):
         for min_samples in range(x, y):
-            temp = 'data/dbscan_over_time/dbscan_over_time_eps={}_min_samples={}_from_{}_to_{}.csv'.\
+            temp = 'data/dbscan_over_time/dbscan_over_time_eps={}_min_samples={}_from_{}_to_{}.csv'. \
                 format(eps, min_samples, fromDate, toDate)
             data = pd.read_csv(temp, index_col='DATE')
 
@@ -79,8 +104,8 @@ def calculate_mse_for_all_dbscan(a, b, c, x, y, fromDate, toDate):
                                             'MAE EXITS': mae_exits
                                             }, ignore_index=True)
 
-    fileOutput = 'data/error_dataframes/error_dataframe_eps=[{},{}]_min_samples=[{},{}]_from_{}_to_{}.csv'.\
-        format(a, b-c, x, y-1, fromDate, toDate)
+    fileOutput = 'data/error_dataframes/error_dataframe_eps=[{},{}]_min_samples=[{},{}]_from_{}_to_{}.csv'. \
+        format(a, b - c, x, y - 1, fromDate, toDate)
     errData.to_csv(fileOutput)
 
 
@@ -109,7 +134,8 @@ def create_dataframe_error(data):
         validation.loc[date, 'DBSCAN ENTRY'] = data.loc[date, 'ENTRIES']
         validation.loc[date, 'DBSCAN EXITS'] = data.loc[date, 'EXITS']
 
-    validation['ENTRY ERROR'] = (validation['DBSCAN ENTRY'] - validation['CORRECT TOTAL']) / validation['CORRECT TOTAL'] * 100
+    validation['ENTRY ERROR'] = (validation['DBSCAN ENTRY'] - validation['CORRECT TOTAL']) / validation[
+        'CORRECT TOTAL'] * 100
     validation['EXIT ERROR'] = (validation['DBSCAN EXITS'] - validation['CORRECT TOTAL']) / validation[
         'CORRECT TOTAL'] * 100
 
@@ -138,6 +164,6 @@ def correct_format(dates):
             values[1] = ('0{}'.format(temp))
 
         newDates.append('{}/{}/{}'.format(values[0],
-                        values[1],
-                        values[2]))
+                                          values[1],
+                                          values[2]))
     return newDates
