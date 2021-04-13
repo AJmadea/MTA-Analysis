@@ -23,13 +23,14 @@ def create_date_dictionary_string(df):
 
 def add_date_related_columns(df):
     d = create_date_dictionary(df)
-
+    print("Iterating through each index...")
     for i in df.index:
         newDate = d.get(df.loc[i, 'DATE'])
         df.loc[i, 'ISOWEEKDAY'] = newDate.isoweekday()
         df.loc[i, 'MONTH'] = newDate.month
         df.loc[i, 'DAY'] = newDate.day
         df.loc[i, 'YEAR'] = newDate.year
+    return df
 
 
 def drop_weekends(df):
