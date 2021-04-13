@@ -3,6 +3,25 @@ import DataframeModification as dfm
 import pandas as pd
 import AnalyzingGroups as ag
 import warnings
+import Validation as v
+
+
+def analyze_from_to_piecewise(fromDate, toDate):
+    saturdays = dfc.get_saturday_list(fromDate, toDate)
+
+    for saturday in saturdays:
+        data = dfc.get_data_from_date(saturday)
+        analyzedData = ag.analyze(data, 1300, 3)
+        analyzedData.to_csv('data_by_date/dbscan_analysis_{}.csv'.format(saturday))
+
+    allData = []
+    for saturday in saturdays:
+        allData.append(
+            pd.read_csv('data_by_date/dbscan_analysis_{}.csv'.format(saturday))
+        )
+    concatData = pd.concat(allData)
+    concatData.sort_values(by='DATE', inplace=True)
+    concatData.to_csv('data_by_date/000_total_dbscan_analysis_{}_to_{}.csv'.format(saturdays[0], saturdays[-1]))
 
 
 def analyze_path_trains(fileName):
@@ -18,7 +37,7 @@ def analyze_path_trains(fileName):
     pathTrains.to_csv('data/path_trains_dbscan_analysis_{}.csv'.format(fileName[2]))
 
 
-def rides_over_time_dbscan(fromDate, toDate, a,b,c,x,y):
+def rides_over_time_dbscan(fromDate, toDate, a, b, c, x, y):
     saturdays = dfc.find_saturday_dates_strings(5)
     fromDate = dfc.get_saturday_string_from_date(fromDate)
     toDate = dfc.get_saturday_string_from_date(toDate)
@@ -32,12 +51,24 @@ def rides_over_time_dbscan(fromDate, toDate, a,b,c,x,y):
             temp = pd.read_csv(fileInput)
             temp = dfc.find_total_rides_per_day(temp)
 
-
             fileOutput = 'data/dbscan_over_time/dbscan_over_time_eps={}_min_samples={}_from_{}_to_{}.csv'.format\
                 (eps, min_samples, fromDate, toDate)
             print('outputting to:', fileOutput)
             temp.to_csv(fileOutput)
 
+
+def create_analyze_calculate_error_dbscan(fromDate, toDate, a, b, c, x, y, n):
+    analyze_with_different_dbscan_params(a, b, c, x, y, n)
+    rides_over_time_dbscan(fromDate, toDate, a, b, c, x, y)
+    v.calculate_mse_for_all_dbscan(a, b, c, x, y, fromDate, toDate)
+
+    errors = ['R2', 'MSE', 'MAE']
+    attrTypes = ['ENTRIES', 'EXITS']
+
+    for e in errors:
+        for a in attrTypes:
+            v.graph_errors(startEPS=a, stopEPS=b, stepEPS=c, startSample=x, stopSample=y, fromDate=fromDate, toDate=toDate,
+                           whatToGraph='{} {}'.format(e, a))
 
 
 def create_rides_over_time_csv(df):
@@ -53,10 +84,10 @@ def create_rides_over_time_csv(df):
     ridesPerDay.to_csv(fileName)
 
 
-def analyze_with_different_dbscan_params(a, b, c, x, y,):
+def analyze_with_different_dbscan_params(a, b, c, x, y, n):
     warnings.filterwarnings('ignore')
-    rawData = dfc.get_n_latest_mta_dataframes(5)
-    saturdays = dfc.find_saturday_dates_strings(5)
+    rawData = dfc.get_n_latest_mta_dataframes(n)
+    saturdays = dfc.find_saturday_dates_strings(n)
     iterations = (b-a)/c * (y - x)
     print('total DBSCAN param iterations:', iterations)
     current = 0
@@ -71,14 +102,16 @@ def analyze_with_different_dbscan_params(a, b, c, x, y,):
             print(current, '/', iterations)
 
 
-def analyze_append_new_data_to_csv(fileName):
+def analyze_append_new_data_to_csv(fileName, eps, min_samples):
+    warnings.filterwarnings('ignore')
     newData = dfc.get_latest_mta_dataframe()
-    analyzedNewData = ag.analyze(newData)
+    analyzedNewData = ag.analyze(newData, eps, min_samples)
+
     oldData = pd.read_csv(fileName)
-    newTotal = pd.concat([newData, oldData])
+    newTotal = pd.concat([analyzedNewData, oldData])
 
     saturday = dfc.find_last_saturday_string()
-    newName = 'pathTrains_{}_to_{}.csv'.format(fileName.split('_')[1], saturday[0])
+    newName = 'data/dbscan_analysis_from_{}_to_{}.csv'.format(fileName.split('_')[2], saturday)
     print('Writing out to file: ', newName)
     newTotal.to_csv(newName)
 
@@ -92,69 +125,61 @@ def clean_up_columns(fileName):
     data.to_csv(fileName)
 
 
-def append_new_data_to_csv(fileName):
-    print("Reading data from ", fileName)
-    oldData = pd.read_csv(fileName)
-    newData = parse_pathTrains(1)
-    saturday = dfc.find_saturday_dates_strings(1)
-    totalData = pd.concat([oldData, newData])
-    totalData.sort_values(by='DATE', inplace=True)
-    newName = 'pathTrains_{}_to_{}.csv'.format(fileName.split('_')[1], saturday[0])
-    print("Trying to write data to ", newName)
-    totalData.to_csv(newName)
-
-
-def parse_pathTrains(number):
-    df = dfc.get_n_latest_mta_dataframes(number)
-    path = dfc.pathRidesPerDay(df)
-    path = dfm.modify_for_outliers(path)
-    path = dfm.sum_lists_in_rows(path)
-    return path
-
-
-def parse_pathTrains_to_csv(number):
-    path = parse_pathTrains(number)
-    saturdays = dfc.find_saturday_dates_strings(number)
-    fileName = 'pathTrains_{}_to_{}.csv'.format(saturdays[-1], saturdays[0])
-    print('Attempting to write to file: ', fileName)
-    path.to_csv(fileName)
-
-
-def parse_non_path_trains_to_csv(number):
-    trains = parse_non_path_trains(number)
-    saturdays = dfc.find_saturday_dates_strings(number)
-    fileName = 'data/nonPathTrains_{}_to_{}.csv'.format(saturdays[-1], saturdays[0])
-    print('Attempting to write to file: ', fileName)
-    trains.to_csv(fileName)
-
-
-def parse_non_path_trains(number):
-    df = dfc.get_n_latest_mta_dataframes(number)
-    trains = dfc.rides_per_day(df)
-    trains = dfm.modify_for_outliers(trains)
-    trains = dfm.sum_lists_in_rows(trains)
-    return trains
-
-
 def sort_by_date(df, fileName):
     df.sort_values(by='DATE', inplace=True)
     df.to_csv(fileName)
+
+
+def analyze_from_to_optics(fromDate, toDate):
+    warnings.filterwarnings('ignore')
+    data = dfc.get_data_between_two_dates(fromDate, toDate)
+    dates = sorted(data['DATE'].unique().tolist())
+    data = data[data['DESC'] == 'REGULAR']
+
+    analyzedData = ag.analyze_optics(data, 1300)
+    fileName = 'data/optics_analysis_from_{}_to_{}.csv'.format(dates[0], dates[-1])
+    analyzedData.to_csv(fileName)
+
+    rides_per_day = dfc.find_total_rides_per_day(analyzedData)
+    rides_per_day.to_csv('optics_total_rides_over_time_from_{}_to_{}.csv'.format(dates[0], dates[-1]))
+
+
+def analyze_from_to_dbscan(fromDate, toDate):
+    warnings.filterwarnings('ignore')
+    data = dfc.get_data_between_two_dates(fromDate, toDate)
+    dates = sorted(data['DATE'].unique().tolist())
+    data = data[data['DESC'] == 'REGULAR']
+
+    analyzedData = ag.analyze(data, 1300, 3)
+    fileName = 'data/dbscan_analysis_from_{}_to_{}.csv'.format(dates[0], dates[-1])
+    analyzedData.to_csv(fileName)
+
+    rides_per_day = dfc.find_total_rides_per_day(analyzedData)
+    rides_per_day.to_csv('dbscan_total_rides_over_time_from_{}_to_{}.csv'.format(dates[0], dates[-1]))
 
 
 def analyze_n_dataframes_by_DBSCAN(number):
     data = dfc.get_n_latest_mta_dataframes(number)
     saturdays = dfc.find_saturday_dates_strings(number)
     data = data[data['DESC'] == 'REGULAR']
-    analyzedData = ag.analyze(data)
+    analyzedData = ag.analyze(data, 1300, 3)
     print(ag.count_negative_groups(analyzedData))
     analyzedData.to_csv('data/dbscan_analysis_{}_to_{}.csv'.format(saturdays[-1], saturdays[0]))
+
+
+def analyze_latest_dataframe_by_OPTICS():
+    data = dfc.get_latest_mta_dataframe()
+    saturday = dfc.find_last_saturday_string()
+    data = data[data['DESC'] == 'REGULAR']
+    analyzedData = ag.analyze_optics(data, 1300)
+    analyzedData.to_csv('data/optics_analysis_{}.csv'.format(saturday))
 
 
 def analyze_latest_dataframe_by_DBSCAN_():
     data = dfc.get_latest_mta_dataframe()
     saturday = dfc.find_last_saturday_string()
-    data = data[data['DESCRIPTION'] == 'REGULAR']
-    analyzedData = ag.analyze(data)
+    data = data[data['DESC'] == 'REGULAR']
+    analyzedData = ag.analyze(data, 1300, 3)
     analyzedData.to_csv('data/dbscan_analysis_{}.csv'.format(saturday))
 
 
