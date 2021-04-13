@@ -4,6 +4,10 @@ from datetime import datetime, timedelta
 import DataframeModification as dfm
 
 
+def get_data_from_date(date):
+    return get_data_from_date_string_list([date])
+
+
 def get_n_latest_mta_dataframes(number):
     df = []
     dates = find_saturday_dates_strings(number)
@@ -43,9 +47,6 @@ def get_saturday_string_from_date(date):
         date = get_last_saturday_from_date(date)
 
     return date.isoformat().replace('-', '')[2:]
-
-
-
 
 
 def get_latest_mta_dataframe():
@@ -105,8 +106,7 @@ def find_data_from_date_n_iterations(fromDate, n):
     return get_data_from_date_string_list(dates)
 
 
-def get_data_from_date_to_date(fromDate, toDate):
-
+def get_saturday_list(fromDate, toDate):
     fromSatDate = get_last_saturday_from_date(fromDate)
     toSatDate = get_last_saturday_from_date(toDate)
 
@@ -115,11 +115,13 @@ def get_data_from_date_to_date(fromDate, toDate):
     dates = []
     weeks = int((toSatDate - fromSatDate).days / 7)
 
-    for i in range(0, weeks+1):
-        dates.append((fromSatDate + timedelta(days=7*i)).isoformat().replace('-', '')[2:])
+    for i in range(0, weeks + 1):
+        dates.append((fromSatDate + timedelta(days=7 * i)).isoformat().replace('-', '')[2:])
+    return dates
 
-    print(dates)
 
+def get_data_between_two_dates(fromDate, toDate):
+    dates = get_saturday_list(fromDate, toDate)
     return get_data_from_date_string_list(dates)
 
 
