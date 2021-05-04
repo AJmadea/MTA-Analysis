@@ -4,21 +4,42 @@ import pandas as pd
 import AnalyzingGroups as ag
 import warnings
 import Validation as v
+import Graphs as gr
+from datetime import datetime
+
+
+def update_with_new_data():
+    fromDate = datetime.fromisoformat('2019-12-28').date()
+
+    saturday = dfc.findLastSaturdayDate()
+    raw_data = dfc.get_latest_mta_dataframe()
+    analyzed_data = ag.analyze(raw_data, 1300, 3)
+    analyzed_data.to_csv('data_by_date/dbscan_analysis_{}.csv'.format(saturday))
+
+    combined_data = combine_data_find_rides_over_time(fromDate, saturday)
+    gr.graph_over_time(combined_data)
+
+
+def combine_data_find_rides_over_time(fromDate, toDate):
+    saturdays = dfc.get_saturday_list(fromDate, toDate)
+    base = 'data_by_date/dbscan_analysis_{}.csv'
+    allData = [pd.read_csv(base.format(s)) for s in saturdays]
+    concatData = pd.concat(allData)
+    data = dfc.find_total_rides_per_day(concatData)
+    data.to_csv('data_by_date/001_rides_over_time_from_{}_to_{}.csv'.format(saturdays[0], saturdays[-1]))
+    return data
 
 
 def analyze_from_to_piecewise(fromDate, toDate):
     saturdays = dfc.get_saturday_list(fromDate, toDate)
+    base = 'data_by_date/dbscan_analysis_{}.csv'
 
     for saturday in saturdays:
         data = dfc.get_data_from_date(saturday)
         analyzedData = ag.analyze(data, 1300, 3)
-        analyzedData.to_csv('data_by_date/dbscan_analysis_{}.csv'.format(saturday))
+        analyzedData.to_csv(base.format(saturday))
 
-    allData = []
-    for saturday in saturdays:
-        allData.append(
-            pd.read_csv('data_by_date/dbscan_analysis_{}.csv'.format(saturday))
-        )
+    allData = [pd.read_csv(base.format(s)) for s in saturdays]
     concatData = pd.concat(allData)
     concatData.sort_values(by='DATE', inplace=True)
     concatData.to_csv('data_by_date/000_total_dbscan_analysis_{}_to_{}.csv'.format(saturdays[0], saturdays[-1]))
