@@ -1,9 +1,43 @@
 import plotly.express as px
+import plotly.graph_objs as go
 import DataframeModification as dfm
+import Statistics as s
 
 
-def graph_rides_over_time(data):
-    data.sort_values(by='DATE', inplace=True)
+def graph_over_time(data):
+    entry_fig = px.line(data, x='DATE', y='ENTRIES', title='Entries Over Time')
+    exit_fig = px.line(data, x='DATE', y='EXITS', title='Exits Over Time')
+
+    entry_fig.show()
+    exit_fig.show()
+
+
+def graph_certain_stations(data, certainStations):
+    print('Filtering rows in the dataframe')
+    print(data.shape)
+
+    data = data[(data['DATE'] == '03/02/2020') |
+                (data['DATE'] == '03/19/2020') |
+                (data['DATE'] == '04/01/2020')]
+
+    for i in data.index:
+        if data.loc[i, 'STATION'] not in certainStations:
+            data.drop(index=i, axis=0, inplace=True)
+
+    data.to_csv('data_by_date/data_in_certainStations.csv')
+
+    print('Calculating the x and y ranges...')
+    range_x = [-10, data['EXITS'].max() * 1.2]
+    range_y = [-10, data['ENTRIES'].max() * 1.2]
+
+    print('Creating the figure...')
+    fig = px.scatter(data, x='EXITS', y='ENTRIES', animation_frame='DATE', title='COVID19 affected Stations',
+                     color='STATION', range_x=range_x, range_y=range_y)
+    fig.show()
+
+
+def graph_scatter_rides_over_time(data):
+    #data.sort_values(by='DATE', inplace=True)
     fig = px.scatter(data, x='EXITS', y='ENTRIES', animation_frame='DATE', color='STATION', title='Rides Over Time',
                      range_x=[-10, 50000], range_y=[-10, 50000])
     fig.show()
