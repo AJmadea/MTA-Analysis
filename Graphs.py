@@ -5,6 +5,10 @@ import Statistics as s
 
 
 def graph_over_time(data):
+    if 'RIDERSHIP' in data.columns:
+        rider_fig = px.line(data, x='DATE', y='RIDERSHIP', title='Ridership Over Time')
+        rider_fig.show()
+
     entry_fig = px.line(data, x='DATE', y='ENTRIES', title='Entries Over Time')
     exit_fig = px.line(data, x='DATE', y='EXITS', title='Exits Over Time')
 

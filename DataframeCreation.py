@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import DataframeModification as dfm
 
 
+
+
 def get_data_from_date(date):
     return get_data_from_date_string_list([date])
 
@@ -37,7 +39,7 @@ def findLastSaturdayDate():
     day = today.isoweekday()
 
     # Ternary Operator to choose the previous saturday
-    print('today', today.isoweekday())
+    #print('today', today.isoweekday())
     saturday = (today + timedelta(days=-1)) if day == 7 else today + timedelta(days=-(day + 1))
     return saturday
 

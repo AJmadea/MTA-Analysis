@@ -4,6 +4,9 @@ from datetime import datetime as dt
 import numpy as np
 
 
+
+
+
 def get_top_n_covid_affected_stations(data, n, write=False):
     stations = data['STATION'].unique()
     n = n if len(stations) > n else len(stations)
@@ -32,7 +35,11 @@ def get_top_n_covid_affected_stations(data, n, write=False):
                            'Top {} Change in Exits (Magnitude)'.format(n): exitMagChange}).\
             to_csv('data_by_date/top_covid_change.csv')
 
-    return entryChange, exitChange
+    allStations = set({})
+    for l in [entryChange, exitChange, entryMagChange, exitMagChange]:
+        for e in l:
+            allStations.add(e)
+    return allStations
 
 
 def get_change_from_covid19():

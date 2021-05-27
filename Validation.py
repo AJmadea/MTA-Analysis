@@ -66,7 +66,50 @@ def get_correct_values(dates):
 
     validation.set_index(keys='DATE', inplace=True)
     validation.sort_index(inplace=True)
-    return validation
+    return validation.reset_index()
+
+
+def calculate_errors(data):
+    dates = data['DATE'].unique()
+    #print(dates)
+    validation = get_correct_values(dates)
+    print(validation.head())
+
+    intersection = set(dates).intersection(validation['DATE'].unique())
+    for i in data.index:
+        if data.loc[i, 'DATE'] not in intersection:
+            data.drop(index=i, axis=0, inplace=True)
+
+    for i in validation.index:
+        if validation.loc[i, 'DATE'] not in intersection:
+            validation.drop(index=i, axis=0, inplace=True)
+
+    #print(validation['DATE'].unique())
+
+    mse = mean_squared_error(y_pred=data['ENTRIES'], y_true=validation['CORRECT TOTAL'])
+    r2 = r2_score(y_pred=data['ENTRIES'], y_true=validation['CORRECT TOTAL'])
+    mae = mean_absolute_error(y_pred=data['ENTRIES'], y_true=validation['CORRECT TOTAL'])
+
+    mse_exits = mean_squared_error(y_pred=data['EXITS'], y_true=validation['CORRECT TOTAL'])
+    r2_exits = r2_score(y_pred=data['EXITS'], y_true=validation['CORRECT TOTAL'])
+    mae_exits = mean_absolute_error(y_pred=data['EXITS'], y_true=validation['CORRECT TOTAL'])
+
+    mse_r = mean_squared_error(y_pred=data['RIDERSHIP'], y_true=validation["CORRECT TOTAL"])
+    r2_r = r2_score(y_pred=data['RIDERSHIP'], y_true=validation["CORRECT TOTAL"])
+    mae_r = mean_absolute_error(y_pred=data['RIDERSHIP'], y_true=validation["CORRECT TOTAL"])
+
+    print('Mean Squared Error Entries: ', mse)
+    print('R^2 Entries: ', r2)
+    print('Mean Absolute Error Entries: ', mae)
+
+    print('\nMean Squared Error Exits: ', mse_exits)
+    print('R^2 Exits: ', r2_exits)
+    print('Mean Absolute Error Exits: ', mae_exits)
+
+    print('\nMSE Ridership:', mse_r)
+    print("R2 Ridership:", r2_r)
+    print("MAE Ridership:", mae_r)
+
 
 
 def calculate_errors_for_all_dbscan(a, b, c, x, y, fromDate, toDate):
@@ -109,8 +152,8 @@ def calculate_errors_for_all_dbscan(a, b, c, x, y, fromDate, toDate):
     errData.to_csv(fileOutput)
 
 
-def create_dataframe_error(data):
-    dataDates = data['DATE'].unique()
+def create_dataframe_error(dataframe):
+    dataDates = dataframe['DATE'].unique()
     validation = create_dataframe_error(dataDates)
     dateIntersection = np.intersect1d(validation['DATE'].unique(), dataDates)
 
@@ -121,18 +164,18 @@ def create_dataframe_error(data):
 
     # sorting values by date.  Resetting index
     validation.sort_values(by='DATE', inplace=True)
-    data.sort_values(by='DATE', inplace=True)
+    dataframe.sort_values(by='DATE', inplace=True)
     validation.reset_index(inplace=True)
-    data.reset_index(inplace=True)
+    dataframe.reset_index(inplace=True)
 
     # Setting index to date to ensure the right values are assigned.
     validation.set_index(keys='DATE', inplace=True)
-    data.set_index(keys='DATE', inplace=True)
+    dataframe.set_index(keys='DATE', inplace=True)
 
     # Assigning estimated entry/exit values to the correct date
     for date in dateIntersection:
-        validation.loc[date, 'DBSCAN ENTRY'] = data.loc[date, 'ENTRIES']
-        validation.loc[date, 'DBSCAN EXITS'] = data.loc[date, 'EXITS']
+        validation.loc[date, 'DBSCAN ENTRY'] = dataframe.loc[date, 'ENTRIES']
+        validation.loc[date, 'DBSCAN EXITS'] = dataframe.loc[date, 'EXITS']
 
     validation['ENTRY ERROR'] = (validation['DBSCAN ENTRY'] - validation['CORRECT TOTAL']) / validation[
         'CORRECT TOTAL'] * 100
