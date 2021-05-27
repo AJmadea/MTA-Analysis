@@ -1,18 +1,6 @@
 import pandas as pd
-from datetime import datetime, timedelta
-from urllib.error import HTTPError
 import plotly.express as px
-import numpy as np
-from ibm_db_dbi import Connection
 from datetime import date
-import DataframeCreation as dfc
-import DataframeModification as dfm
-import Graphs as g
-import CSVFile as f
-import AnalyzingGroups as ag
-import Validation as v
-import Statistics as s
-import DatabaseMethods as dbm
 import streamlit as st
 import ibm_db
 
@@ -92,9 +80,6 @@ def get_connection():
 
 if __name__ == '__main__':
 
-
-    #f.update_with_new_data()
-    #f.analyze_from_to_piecewise(fromDate, toDate)
     graph_type = st.selectbox(label="What To Graph", options=
         ("Station Rides", "Entries/Exits Scatter Plot", "Rides Over Time"))
 
