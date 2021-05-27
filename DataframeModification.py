@@ -3,12 +3,21 @@ from datetime import date as dt
 import pandas as pd
 
 
+def add_ridership_column(data):
+    for i in data.index:
+        entry = data.loc[i, 'ENTRIES']
+        _exit = data.loc[i, 'EXITS']
+        _max = max(entry, _exit)
+        _min = min(entry, _exit)
+        data.loc[i, 'RIDERSHIP'] = _max + (_max - _min)
+
+
 def create_date_dictionary(df):
     d = {}
     dates = df['DATE'].unique()
     for date in dates:
         string = '{}-{}-{}'.format(date[6:], date[0:2], date[3:5])
-        d.__setitem__(date, dt.fromisoformat(string))
+        d[date] = dt.fromisoformat(string)
     return d
 
 
@@ -17,7 +26,7 @@ def create_date_dictionary_string(df):
     dates = df['DATE'].unique()
     for date in dates:
         string = '{}-{}-{}'.format(date[6:], date[0:2], date[3:5])
-        d.__setitem__(date, string)
+        d[date] = string
     return d
 
 

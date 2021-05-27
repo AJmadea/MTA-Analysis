@@ -78,9 +78,9 @@ def analyze(df, eps, min_samples):
                 exitList = temp['EXITS'].tolist()
 
                 if len(entryList) > 0:
-                    entries = abs(entryList[-1] - entryList[0]) + entries
+                    entries += abs(entryList[-1] - entryList[0])
                 if len(exitList) > 0:
-                    exits = abs(exitList[-1] - exitList[0]) + exits
+                    exits += abs(exitList[-1] - exitList[0])
             final = final.append(other={'STATION': f['STATION'].unique().tolist()[0],
                                         'DATE': f['DATE'].unique().tolist()[0],
                                         'ENTRIES': entries,

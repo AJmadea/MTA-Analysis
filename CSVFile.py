@@ -6,18 +6,19 @@ import warnings
 import Validation as v
 import Graphs as gr
 from datetime import datetime
+import DatabaseMethods as dbm
 
 
 def update_with_new_data():
-    fromDate = datetime.fromisoformat('2019-12-28').date()
-
-    saturday = dfc.findLastSaturdayDate()
     raw_data = dfc.get_latest_mta_dataframe()
     analyzed_data = ag.analyze(raw_data, 1300, 3)
-    analyzed_data.to_csv('data_by_date/dbscan_analysis_{}.csv'.format(saturday))
+    analyzed_data.to_csv('data_by_date/dbscan_analysis_{}.csv'.format(dfc.find_last_saturday_string()))
+    get_rides_over_time(analyzed_data)
 
-    combined_data = combine_data_find_rides_over_time(fromDate, saturday)
-    gr.graph_over_time(combined_data)
+
+def get_rides_over_time(data):
+    rides_over_time = dfc.find_total_rides_per_day(data)
+    dbm.connect_execute_rides_over_time(rides_over_time)
 
 
 def combine_data_find_rides_over_time(fromDate, toDate):
@@ -42,6 +43,9 @@ def analyze_from_to_piecewise(fromDate, toDate):
     allData = [pd.read_csv(base.format(s)) for s in saturdays]
     concatData = pd.concat(allData)
     concatData.sort_values(by='DATE', inplace=True)
+
+    rides_over_time = create_rides_over_time_csv(concatData)
+    dbm.connect_execute_rides_over_time(rides_over_time)
     concatData.to_csv('data_by_date/000_total_dbscan_analysis_{}_to_{}.csv'.format(saturdays[0], saturdays[-1]))
 
 
@@ -103,6 +107,7 @@ def create_rides_over_time_csv(df):
     fileName = 'data/rides_over_time_{}_to_{}.csv'.format(fromDate, toDate)
     print('Trying to save to file: ', fileName)
     ridesPerDay.to_csv(fileName)
+    return ridesPerDay
 
 
 def analyze_with_different_dbscan_params(a, b, c, x, y, n):

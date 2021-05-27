@@ -6,7 +6,7 @@ import plotly.express as px
 
 def read_credentials():
     lines = None
-    with open("database_credentials.txt", "r") as f:
+    with open("C:/Users/Andrew/Desktop/pythonMTAanalysis/database_credentials.txt", "r") as f:
         lines = f.read().split("|")
     return lines[0], lines[1], lines[2]
 
@@ -30,6 +30,34 @@ def connect_execute_rides_over_time(data):
     conn = ibm_db.connect(_dsn, _uid, _pwd)
     ibm_db.exec_immediate(conn, sql_statement)
     ibm_db.close(conn)
+
+
+def get_station_rides(dsn, user, pwd, station ):
+    dsn, user, pwd = read_credentials()
+    # Connecting to DB2
+    conn = ibm_db.connect(dsn, user, pwd)
+
+    # Sending SQL command
+    result = ibm_db.exec_immediate(conn, "SELECT DATE_,ENTRIES,EXITS FROM RIDES_PER_STATION WHERE STATION = \'"
+                                   + station + "\'")
+
+    # Creating empty lists for dataframe
+    dates = []
+    entries = []
+    exits = []
+
+    # Parsing info from db2 into pandas dataframe
+    row = ibm_db.fetch_tuple(result)
+    while row:
+        dates.append(row[0])
+        entries.append(row[1])
+        exits.append(row[2])
+        row = ibm_db.fetch_tuple(result)
+    ibm_db.close(conn)
+
+    data = pd.DataFrame(data={'DATE': dates, 'ENTRIES': entries, 'EXITS': exits})
+
+    return data
 
 
 def get_rides_over_time():
