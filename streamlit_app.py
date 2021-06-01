@@ -1,10 +1,3 @@
-import streamlit as st
-import ibm_db
-import plotly.express as px
-import pandas as pd
-from datetime import date
-
-
 @st.cache(hash_funcs={ibm_db.IBM_DBConnection: lambda _: None})
 def get_ride_data(_conn):
     result = ibm_db.exec_immediate(_conn, "SELECT DATE_RECORD,ENTRIES,EXITS FROM RIDES_OVER_TIME")
