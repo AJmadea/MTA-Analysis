@@ -1,3 +1,4 @@
 pandas
 plotly
+libxml2
 ibm_db
