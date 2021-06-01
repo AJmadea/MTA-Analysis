@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 import DataframeModification as dfm
 
 
-
-
 def get_data_from_date(date):
     return get_data_from_date_string_list([date])
 
@@ -39,7 +37,6 @@ def findLastSaturdayDate():
     day = today.isoweekday()
 
     # Ternary Operator to choose the previous saturday
-    #print('today', today.isoweekday())
     saturday = (today + timedelta(days=-1)) if day == 7 else today + timedelta(days=-(day + 1))
     return saturday
 
@@ -96,7 +93,6 @@ def find_data_from_date_n_iterations(fromDate, n):
     todayDate = datetime.today().date()
     date = get_last_saturday_from_date(fromDate)
 
-    df = []
     dates = []
     for i in range(0, n):
         tempDate = date + timedelta(days=7*i)
@@ -135,10 +131,10 @@ def get_data_from_date_string_list(listOfDates):
         temp = pd.read_csv(baseURL)
         df.append(temp)
 
-    all = pd.concat(df)
-    errorColumn = all.columns[-1]
-    all.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
-    return all
+    all_data = pd.concat(df)
+    errorColumn = all_data.columns[-1]
+    all_data.rename({errorColumn: 'EXITS'}, axis=1, inplace=True)
+    return all_data
 
 
 def get_nunique_grouped_by_station(rawData):
@@ -149,9 +145,9 @@ def get_nunique_grouped_by_station(rawData):
         temp = rawData[rawData['STATION'] == station]
         tempMap = {}
         for c in temp.columns:
-            tempMap.__setitem__(c, temp[c].nunique())
-        tempMap.__setitem__('STATION', station)
-        listDicts.__setitem__(station, tempMap)
+            tempMap[c] = temp[c].nunique()
+        tempMap['STATION'] = station
+        listDicts[station] = tempMap
 
     stationInformation = pd.DataFrame(data={}, columns=rawData.columns)
 
@@ -164,13 +160,14 @@ def get_nunique_grouped_by_station(rawData):
 
 
 def find_total_rides_per_day(df):
-    final = pd.DataFrame()
+    dates = []
+    all_entries = []
+    all_exits = []
 
     for date in df['DATE'].unique():
         temp = df[df['DATE'] == date]
-        entries = temp['ENTRIES'].sum()
-        exits = temp['EXITS'].sum()
-        final = final.append(other={'DATE': date,
-                                    'ENTRIES': entries,
-                                    'EXITS': exits}, ignore_index=True)
-    return final
+        dates.append(date)
+        all_entries.append(temp['ENTRIES'].sum())
+        all_exits.append(temp['EXITS'].sum())
+
+    return pd.DataFrame(data={'DATE':dates, 'ENTRIES':all_entries, 'EXITS':all_exits})

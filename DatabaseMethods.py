@@ -11,7 +11,7 @@ def read_credentials():
     return lines[0], lines[1], lines[2]
 
 
-def format_sql(data):
+def format_sql_into_rides_over_time(data):
     diction = dfm.create_date_dictionary_string(data)
     base_sql = "INSERT INTO RIDES_OVER_TIME(DATE_RECORD, ENTRIES, EXITS) VALUES "
     for i in data.index:
@@ -24,11 +24,42 @@ def format_sql(data):
 
 
 def connect_execute_rides_over_time(data):
-    sql_statement = format_sql(data)[:-1] # [:-1] to get rid of the last comma in the entry
+    sql_statement = format_sql_into_rides_over_time(data)[:-1] # [:-1] to get rid of the last comma in the entry
     print(sql_statement)
     _dsn, _uid, _pwd = read_credentials()
     conn = ibm_db.connect(_dsn, _uid, _pwd)
     ibm_db.exec_immediate(conn, sql_statement)
+    ibm_db.close(conn)
+
+
+def format_sql_into_rides_per_station(data):
+    base_sql = "INSERT INTO RIDES_PER_STATION(STATION, DATE_, ENTRIES, EXITS) VALUES "
+    diction = dfm.create_date_dictionary_string(data)
+    for i in data.index:
+        station = data.loc[i, 'STATION']
+        date = diction[data.loc[i, 'DATE']]
+        entry = data.loc[i, 'ENTRIES']
+        exits = data.loc[i, 'EXITS']
+        append = "(\'{}\', \'{}\',{},{}),".format(station, date, int(entry), int(exits))
+        base_sql = base_sql + append
+    return base_sql
+
+
+def connect_execute_station_rides(data):
+    #sql_statement = format_sql_into_rides_per_station(data)[:-1] # [:-1] to get rid of the last comma in the entry
+    #print(sql_statement)
+    diction = dfm.create_date_dictionary_string(data)
+    _dsn, _uid, _pwd = read_credentials()
+    conn = ibm_db.connect(_dsn, _uid, _pwd)
+    for i in data.index:
+        sql = "INSERT INTO RIDES_PER_STATION(STATION, DATE_, ENTRIES, EXITS) VALUES (\'{}\', \'{}\',{},{})"
+
+        sql = sql.format(
+            data.loc[i, 'STATION'].replace("\'", ""), diction[data.loc[i, 'DATE']],  data.loc[i, 'ENTRIES'],
+            data.loc[i, 'EXITS']
+        )
+        print(sql)
+        ibm_db.exec_immediate(conn, sql)
     ibm_db.close(conn)
 
 
@@ -101,6 +132,3 @@ def create_graphs_over_time():
 
     weekday_entry_fig = px.line(weekday_data, x="DATE", y='ENTRIES', title='Weekday Entries')
     weekday_entry_fig.show()
-
-    #entries_fig = px.line(data, x='DATE', y='ENTRIES', title='Entries Over Time MTA')
-    #exit_fig = px.line(data, x='DATE', y='EXITS', title='Exits Over Time MTA')

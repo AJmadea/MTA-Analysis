@@ -9,16 +9,20 @@ from datetime import datetime
 import DatabaseMethods as dbm
 
 
-def update_with_new_data():
+def update_with_new_data(sql=True):
     raw_data = dfc.get_latest_mta_dataframe()
     analyzed_data = ag.analyze(raw_data, 1300, 3)
+    if sql:
+        dbm.connect_execute_station_rides(analyzed_data)
     analyzed_data.to_csv('data_by_date/dbscan_analysis_{}.csv'.format(dfc.find_last_saturday_string()))
-    get_rides_over_time(analyzed_data)
+
+    get_rides_over_time(analyzed_data, sql)
 
 
-def get_rides_over_time(data):
+def get_rides_over_time(data, sql):
     rides_over_time = dfc.find_total_rides_per_day(data)
-    dbm.connect_execute_rides_over_time(rides_over_time)
+    if sql:
+        dbm.connect_execute_rides_over_time(rides_over_time)
 
 
 def combine_data_find_rides_over_time(fromDate, toDate):
