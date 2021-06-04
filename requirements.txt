@@ -1,4 +1,3 @@
 pandas
 plotly
 ibm_db
-libxml
