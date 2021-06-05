@@ -33,7 +33,7 @@ def get_station_data(conn, station):
 
     result = ibm_db.exec_immediate(conn, "SELECT DATE_,ENTRIES,EXITS FROM RIDES_PER_STATION WHERE STATION = \'"
                                    + station + "\'")
-
+    
     # Creating empty lists for dataframe
     dates = []
     entries = []
@@ -73,9 +73,19 @@ def get_all_stations(_conn):
     return all_stations
 
 
+def get_boxplot(data, choice, station):
+    #print(data.describe())
+    pandemic_date = date(2020, 3, 13)
+    for i in data.index:
+        current = data.loc[i, 'DATE']
+        data.loc[i, 'WEEKDAY'] = 'WEEKDAY' if current.isoweekday() < 6 else 'WEEKEND'
+        data.loc[i, 'PANDEMIC'] = 'PRE' if current <= pandemic_date else "POST"
+
+    return px.box(data, x='PANDEMIC', y=choice, title="BoxPlot {} for {}".format(choice, station))
+
+
 def get_connection():
-    conn = ibm_db.pconnect(st.secrets['dsn'], st.secrets['user'], st.secrets['pws'])
-    return conn
+    return ibm_db.pconnect(st.secrets['dsn'], st.secrets['user'], st.secrets['pws'])
 
 
 if __name__ == '__main__':
@@ -96,10 +106,13 @@ if __name__ == '__main__':
         data = get_station_data(get_connection(), station)
 
         if graph_type == "Entries/Exits Scatter Plot":
-            fig = px.scatter(data, x='EXITS', y='ENTRIES', color='PANDEMIC', symbol="WEEKDAY", title="Scatter Plot of Entries V.S. Exits for "+station)
+            fig = px.scatter(data, x='EXITS', y='ENTRIES', color='PANDEMIC', symbol="WEEKDAY",
+                             title="Scatter Plot of Entries V.S. Exits for "+station)
             st.plotly_chart(fig)
         elif graph_type == "Station Rides":
             choice = st.radio(label="", options=("Plot The Entries", "Plot the Exits"))
             choice = choice.split(" ")[2].upper()
             fig = px.line(data, x="DATE", y=choice, title=choice+" Over Time for "+station)
             st.plotly_chart(fig)
+            # Use data to get the average and quartiles.
+            st.plotly_chart(get_boxplot(data, choice, station))
